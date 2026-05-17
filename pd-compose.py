@@ -1,53 +1,63 @@
 #!/data/data/com.termux/files/usr/bin/python3
 
-
-import argparse
 import subprocess
 import sys
 from pathlib import Path
 
+import typer
 import yaml
 
+app = typer.Typer(help="pd-compose: proot-distro compose tool")
 
-def main():
-    parser = argparse.ArgumentParser(description="pd-compose: proot-distro compose tool")
-    parser.add_argument("command", choices=["up", "down", "ps"])
-    args = parser.parse_args()
 
-    config_path = Path("pd-compose.yaml")
-    if not config_path.exists():
-        print("error: pd-compose.yaml not found")
-        sys.exit(1)
+def load_config(file: Path) -> dict:
+    if not file.exists():
+        typer.echo(f"error: {file} not found", err=True)
+        raise typer.Exit(1)
+    with open(file) as f:
+        return yaml.safe_load(f) or {}
 
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
 
-    services = config.get("services", {})
-
-    if args.command == "up":
-        for name, svc in services.items():
-            image = svc.get("image", "ubuntu")
-            print(f"Installing {name} from {image}...")
+@app.command()
+def up(
+    file: Path = typer.Option("pd-compose.yaml", "--file", "-f", help="Config file"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print commands without running"),
+):
+    """Install and prepare containers defined in pd-compose.yaml"""
+    config = load_config(file)
+    for name, svc in config.get("services", {}).items():
+        image = svc.get("image", "ubuntu")
+        typer.echo(f"Installing {name} from {image}...")
+        if not dry_run:
             subprocess.run(["proot-distro", "install", "--name", name, image])
 
-            login_args = ["proot-distro", "login", name]
-            for bind in svc.get("binds", []):
-                login_args += ["--bind", bind]
-            env_vars = svc.get("environment", {})
-            for k, v in env_vars.items():
-                login_args += ["--env", f"{k}={v}"]
+        login_args = ["proot-distro", "login", name]
+        for bind in svc.get("binds", []):
+            login_args += ["--bind", bind]
+        for k, v in svc.get("environment", {}).items():
+            login_args += ["--env", f"{k}={v}"]
 
-            print(f"Starting {name}...")
-            print(" ".join(login_args))
+        typer.echo(" ".join(login_args))
 
-    elif args.command == "down":
-        for name in services:
-            print(f"Removing {name}...")
+
+@app.command()
+def down(
+    file: Path = typer.Option("pd-compose.yaml", "--file", "-f", help="Config file"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print commands without running"),
+):
+    """Remove containers defined in pd-compose.yaml"""
+    config = load_config(file)
+    for name in config.get("services", {}):
+        typer.echo(f"Removing {name}...")
+        if not dry_run:
             subprocess.run(["proot-distro", "remove", name])
 
-    elif args.command == "ps":
-        subprocess.run(["proot-distro", "list"])
+
+@app.command()
+def ps():
+    """List installed containers"""
+    subprocess.run(["proot-distro", "list"])
 
 
 if __name__ == "__main__":
-    main()
+    app()
