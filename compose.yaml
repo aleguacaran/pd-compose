@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      tags:
+        - pd-compose:latest
+    image: pd-compose:latest
+    container_name: pd-compose
+    entrypoint: bash -c
+    command: tail -f /dev/null
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
