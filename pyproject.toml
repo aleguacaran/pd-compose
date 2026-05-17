@@ -13,6 +13,7 @@ requires-python = ">=3.9"
 dependencies = [
     "typer>=0.9",
     "pyyaml>=6.0",
+    "proot-distro",
 ]
 keywords = ["termux", "proot-distro", "proot", "container"]
 
@@ -21,6 +22,11 @@ Homepage = "https://github.com/aleguacaran/pd-compose"
 
 [project.scripts]
 pd-compose = "pd_compose.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
