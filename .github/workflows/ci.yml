@@ -9,14 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.13", "3.14"]
+        python-version: ["3.13", "3.14-dev"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
 
       - name: deps
         run: python -m pip install -U pip
