@@ -1,0 +1,9 @@
+.git
+__pycache__
+*.pyc
+dist
+*.egg-info
+AGENTS.md
+README.md
+Dockerfile
+compose.yaml
