@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      FORCE_COLOR: 0
+      FORCE_COLOR: ""
     strategy:
       matrix:
         python-version: ["3.13", "3.14"]
