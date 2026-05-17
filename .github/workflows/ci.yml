@@ -5,11 +5,23 @@ on: pull_request
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      NO_COLOR: 1
     strategy:
       matrix:
         python-version: ["3.13", "3.14"]
-    container:
-      image: python:${{ matrix.python-version }}-slim
     steps:
-      - uses: actions/checkout@v4
-      - run: pip install -e ".[dev]" && python -m pytest -v
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: deps
+        run: python -m pip install -U pip
+
+      - name: install
+        run: python -m pip install -e ".[dev]"
+
+      - name: test
+        run: python -m pytest
