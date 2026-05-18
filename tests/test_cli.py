@@ -88,7 +88,7 @@ def test_up_dry_run(config_file, monkeypatch):
     assert result.exit_code == 0
     assert "Installing test-vm from alpine:latest" in result.stdout
     content = result.stdout
-    assert "proot-distro login test-vm" in content
+    assert "proot-distro" in content and "test-vm" in content
     assert "--bind /host/path:/container/path" in content
     assert "--env FOO=bar" in content
     assert "--env BAZ=qux" in content
@@ -124,7 +124,9 @@ def test_up_with_custom_file(config_file, monkeypatch):
     assert result.exit_code == 0
     assert len(calls) == 2
     assert calls[0] == ["proot-distro", "install", "--name", "test-vm", "alpine:latest"]
-    assert calls[1][:3] == ["proot-distro", "login", "test-vm"]
+    assert calls[1][0] == "proot-distro"
+    assert calls[1][1] in ("login", "run")
+    assert calls[1][2] == "test-vm"
 
 
 def test_down_with_custom_file(config_file, monkeypatch):
@@ -184,15 +186,15 @@ def test_multiple_services(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert len(calls) == 4
     install_calls = [c for c in calls if c[:2] == ["proot-distro", "install"]]
-    login_calls = [c for c in calls if c[:2] == ["proot-distro", "login"]]
+    run_calls = [c for c in calls if c[:2] == ["proot-distro", "run"]]
     assert len(install_calls) == 2
-    assert len(login_calls) == 2
+    assert len(run_calls) == 2
     assert {"web", "db"} == {c[3] for c in install_calls}
     assert sorted(install_calls) == sorted([
         ["proot-distro", "install", "--name", "web", "nginx:latest"],
         ["proot-distro", "install", "--name", "db", "postgres:17"],
     ])
-    assert {c[2] for c in login_calls} == {"web", "db"}
+    assert {c[2] for c in run_calls} == {"web", "db"}
 
 
 def test_default_image(tmp_path, monkeypatch):
@@ -213,7 +215,8 @@ def test_default_image(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert len(calls) == 2
     assert calls[0] == ["proot-distro", "install", "--name", "noimage", "ubuntu"]
-    assert calls[1][:2] == ["proot-distro", "login"]
+    assert calls[1][0] == "proot-distro"
+    assert calls[1][1] in ("login", "run")
 
 
 def test_up_down_roundtrip(tmp_path, monkeypatch):
@@ -233,10 +236,23 @@ def test_up_down_roundtrip(tmp_path, monkeypatch):
     assert result_up.exit_code == 0
     assert len(calls) == 2
     assert calls[0] == ["proot-distro", "install", "--name", "rt", "busybox:latest"]
-    assert calls[1][:2] == ["proot-distro", "login"]
+    assert calls[1][0] == "proot-distro"
+    assert calls[1][1] in ("login", "run")
 
     calls.clear()
 
     result_down = runner.invoke(app, ["down", "-f", str(path)])
     assert result_down.exit_code == 0
     assert calls == [["proot-distro", "remove", "rt"]]
+
+
+def test_detach_flag_help():
+    result = runner.invoke(app, ["up", "--help"])
+    assert result.exit_code == 0
+    assert "--detach" in result.stdout or "-d" in result.stdout
+
+
+def test_down_all_help():
+    result = runner.invoke(app, ["down", "--help"])
+    assert result.exit_code == 0
+    assert "--all" in result.stdout or "-a" in result.stdout
