@@ -23,7 +23,7 @@ def up(
     file: Path = typer.Option("pd-compose.yaml", "--file", "-f", help="Config file"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print commands without running"),
 ):
-    """Install and prepare containers defined in pd-compose.yaml"""
+    """Install and run containers defined in pd-compose.yaml"""
     config = load_config(file)
     for name, svc in config.get("services", {}).items():
         image = svc.get("image", "ubuntu")
@@ -38,6 +38,8 @@ def up(
             login_args += ["--env", f"{k}={v}"]
 
         typer.echo(" ".join(login_args))
+        if not dry_run:
+            subprocess.run(login_args)
 
 
 @app.command()
