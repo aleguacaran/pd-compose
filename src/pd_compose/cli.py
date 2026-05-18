@@ -68,19 +68,37 @@ def run_detached(name: str, args: list[str]) -> int:
     return process.pid
 
 
-def stop_detached(name: str) -> bool:
+def stop_detached(name: str, force: bool = False) -> bool:
     pid_file = PID_DIR / f"{name}.pid"
     if not pid_file.exists():
         return False
 
     pid = int(pid_file.read_text().strip())
     try:
-        os.kill(pid, signal.SIGTERM)
-        time.sleep(1)
-        os.kill(pid, 0)
-        os.kill(pid, signal.SIGKILL)
+        try:
+            os.killpg(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+
+        time.sleep(2)
+
+        try:
+            os.killpg(pid, 0)
+            os.killpg(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
     except ProcessLookupError:
         pass
+
+    try:
+        subprocess.run(["pkill", "-f", f"proot.*--rootfs.*{name}"], capture_output=True)
+    except Exception:
+        pass
+
     finally:
         pid_file.unlink(missing_ok=True)
     return True
@@ -158,12 +176,56 @@ def down(
     config = load_config(file)
     for name in config.get("services", {}):
         pid_file = PID_DIR / f"{name}.pid"
-        if pid_file.exists() and not dry_run:
-            stop_detached(name)
+        pid = None
+
+        if pid_file.exists():
+            pid = int(pid_file.read_text().strip())
+            if not dry_run:
+                typer.echo(f"Stopping {name}...")
+
+                for _ in range(5):
+                    try:
+                        os.killpg(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        try:
+                            os.kill(pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            break
+                    time.sleep(1)
+                    try:
+                        os.kill(pid, 0)
+                    except ProcessLookupError:
+                        break
+
+                for _ in range(5):
+                    try:
+                        os.killpg(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    time.sleep(1)
+                    try:
+                        os.kill(pid, 0)
+                    except ProcessLookupError:
+                        break
+
+            else:
+                typer.echo(f"[dry-run] Would stop {name}")
 
         typer.echo(f"Removing {name}...")
         if not dry_run:
             subprocess.run(["proot-distro", "remove", name])
+            time.sleep(2)
+
+            if pid:
+                for _ in range(3):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        break
+                    time.sleep(1)
 
 
 @app.command()
