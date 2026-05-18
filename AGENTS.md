@@ -32,15 +32,14 @@ docker compose up -d app
 ### Run tests
 
 ```bash
-docker compose exec app pip install -e ".[dev]"
-docker compose exec app python -m pytest -v
+docker compose exec app /entrypoint.sh python -m pytest -v
 ```
 
 ### Run pd-compose commands
 
 ```bash
-docker compose exec app pd-compose --help
-docker compose exec app pd-compose up --dry-run
+docker compose exec app /entrypoint.sh pd-compose --help
+docker compose exec app /entrypoint.sh pd-compose up --dry-run
 ```
 
 ### Usage with `docker run`

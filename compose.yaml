@@ -5,9 +5,8 @@ services:
         - pd-compose:latest
     image: pd-compose:latest
     container_name: pd-compose
-    entrypoint: bash -c
     command: tail -f /dev/null
     volumes:
-      - .:/app
+      - .:/data/data/com.termux/files/home/pd-compose
     stdin_open: true
     tty: true
