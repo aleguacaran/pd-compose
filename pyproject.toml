@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pd-compose"
-version = "0.1.0"
+version = "0.2.0"
 description = "A minimal compose-like tool for proot-distro"
 readme = "README.md"
 license = "MIT"

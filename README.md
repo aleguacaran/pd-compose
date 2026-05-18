@@ -11,7 +11,7 @@ services:
   ubuntu-vm:
     image: ubuntu:24.04
     binds:
-      - /data/data/com.termux/files/home:/host-home
+      - /host/path:/container/path
     environment:
       DEBIAN_FRONTEND: noninteractive
 ```
